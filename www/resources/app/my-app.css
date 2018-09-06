@@ -584,7 +584,7 @@ html:not(.watch-active-state) .button.btn_login.button-fill:active{
 	}
 		.logo img{
 			width: 100%;
-			max-width: 391px;
+			max-width: 200px;
 		}
 
 		.login-screen-content .login_list{
@@ -911,7 +911,7 @@ html:not(.watch-active-state) .button.btn_login.button-fill:active{
 			color: #fff;
 		}
 		.list-playback-settings.list-block .focus-state .label{
-			color: #f44336;
+			color: #29acb2;
 		}
 		
 		.item-with-arrow{
@@ -927,7 +927,7 @@ html:not(.watch-active-state) .button.btn_login.button-fill:active{
     			background-position: calc(100% - 16px) center;
 			}
 			.theme-dealer .list-block.media-list .item-with-arrow .item-inner.focus-state{
-				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20viewBox%3D'0%200%2060%20120'%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%3E%3Cpath%20d%3D'm60%2061.5-38.25%2038.25-9.75-9.75%2029.25-28.5-29.25-28.5%209.75-9.75z'%20fill%3D'%23f44336'%2F%3E%3C%2Fsvg%3E");
+				background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20viewBox%3D'0%200%2060%20120'%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%3E%3Cpath%20d%3D'm60%2061.5-38.25%2038.25-9.75-9.75%2029.25-28.5-29.25-28.5%209.75-9.75z'%20fill%3D'%2329acb2'%2F%3E%3C%2Fsvg%3E");
 			}
 			
 			.theme-dealer .list-block.list-playback-settings .input-field.focus-state:after, 
