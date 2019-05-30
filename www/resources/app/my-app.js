@@ -2,6 +2,8 @@ $hub = null;
 window.NULL = null;
 window.COM_TIMEFORMAT = 'YYYY-MM-DD HH:mm:ss';
 window.COM_TIMEFORMAT2 = 'YYYY-MM-DDTHH:mm:ss';
+window.COM_TIMEFORMAT3 = 'YYYY-MM-DDTHH:MM';
+UTCOFFSET = moment().utcOffset();
 function setUserinfo(user){localStorage.setItem("COM.QUIKTRAK.LIVE.USERINFO", JSON.stringify(user));}
 function getUserinfo(){var ret = {};var str = localStorage.getItem("COM.QUIKTRAK.LIVE.USERINFO");if(str) {ret = JSON.parse(str);} return ret;}
 function isJsonString(str){try{var ret=JSON.parse(str);}catch(e){return false;}return ret;}
@@ -282,11 +284,11 @@ API_URL.URL_GET_LOGIN = API_DOMIAN1 + "User/Auth?username={0}&password={1}&appKe
 API_URL.URL_GET_LOGOUT = API_DOMIAN1 + "User/Logoff2?mobileToken={0}&deviceToken={1}";
 API_URL.URL_EDIT_ACCOUNT = API_DOMIAN1 + "User/Edit?MajorToken={0}&MinorToken={1}&FirstName={2}&SubName={3}&Mobile={4}&Phone={5}&EMail={6}";
 API_URL.URL_EDIT_DEVICE = API_DOMIAN1 + "Device/Edit?MinorToken={0}&Code={1}&name={2}&speedUnit={3}&initMileage={4}&initAccHours={5}&attr1={6}&attr2={7}&attr3={8}&attr4={9}&tag={10}&icon={11}&MajorToken={12}";
-API_URL.URL_SET_ALARM = API_DOMIAN1 + "Device/AlarmOptions?MinorToken={0}&imei={1}&options={2}";
+/*API_URL.URL_SET_ALARM = API_DOMIAN1 + "Device/AlarmOptions?MinorToken={0}&imei={1}&options={2}";
 API_URL.URL_SET_ALARM2 = API_DOMIAN1 + "Device/AlarmOptions2?MinorToken={0}&imei={1}&options={2}";
 
 API_URL.URL_SET_GEOLOCK_ON = API_DOMIAN1 + "Device/Lock?MajorToken={0}&MinorToken={1}&code={2}&radius=100";
-API_URL.URL_SET_GEOLOCK_OFF = API_DOMIAN1 + "Device/Unlock?MajorToken={0}&MinorToken={1}&code={2}";
+API_URL.URL_SET_GEOLOCK_OFF = API_DOMIAN1 + "Device/Unlock?MajorToken={0}&MinorToken={1}&code={2}";*/
 
 API_URL.URL_GET_POSITION = API_DOMIAN1 + "Device/GetPosInfo?MinorToken={0}&Code={1}";
 API_URL.URL_GET_POSITION2 = API_DOMIAN1 + "Device/GetPosInfo2?MinorToken={0}&Code={1}";
@@ -299,6 +301,9 @@ API_URL.URL_RESET_PASSWORD = API_DOMIAN1 + "User/Password?MinorToken={0}&oldpwd=
 API_URL.URL_VERIFY_BY_EMAIL = API_DOMIAN3 + "Client/VerifyCodeByEmail?email={0}";
 API_URL.URL_FORGOT_PASSWORD = API_DOMIAN3 + "Client/ForgotPassword?account={0}&newPassword={1}&checkNum={2}";
 API_URL.URL_GET_NEW_NOTIFICATIONS = API_DOMIAN1 +"Device/Alarms?MinorToken={0}&deviceToken={1}";
+
+API_URL.URL_SET_ALERT_CONFIG = API_DOMIAN1 + "Device/AlertConfigureEdit";
+API_URL.URL_GET_ALERT_CONFIG = API_DOMIAN1 + "Device/GetAlertConfigure";
 
 API_URL.URL_GEOFENCE_ADD = API_DOMIAN1 + "Device/FenceAdd";
 API_URL.URL_GET_GEOFENCE_LIST = API_DOMIAN1 + "Device/GetFenceList";
@@ -526,6 +531,23 @@ $$('body').on('change keyup input click', '.only_numbers', function(){
          this.value = this.value.replace(/[^0-9-]/g, '');
     }
 });
+
+$$('body').on('click', '.sorting_button', function(e){  
+    var clickedLink = this;
+    var popoverHTML = '<div class="popover">'+
+                      '<div class="popover-inner">'+                      
+                        '<div class="list-block">'+
+                          '<ul>'+  
+                          '<li class="color-gray list-button-label">'+LANGUAGE.COM_MSG41+'</li>'+
+                          '<li><a href="#" class="item-link list-button color-dealer" onClick="sortAssetList(this);" data-sort-by="name" >'+LANGUAGE.COM_MSG42+'</a></li>'+
+                          '<li><a href="#" class="item-link list-button color-dealer" onClick="sortAssetList(this);" data-sort-by="state" >'+LANGUAGE.COM_MSG43+'</a></li>'+                          
+                          '</ul>'+
+                        '</div>'+
+                      '</div>'+
+                    '</div>';
+    App.popover(popoverHTML, clickedLink);
+});
+
 $$('body').on('click', '.toggle-password', function(){
     var password = $(this).siblings("input[name='password']");
     if(password.hasClass('show_pwd')){
@@ -645,7 +667,7 @@ $$(document).on('click', 'a.tab-link', function(e){
                 loadTrackPage();
                 break;
             case 'asset.alarm':
-                loadAlarmPage();
+                getAlertConfig();
                 break;
 
             case 'profile':
@@ -712,13 +734,18 @@ App.onPageInit('notification', function(page){
                 if (typeof item.mileage === "undefined") {
                     item.mileage = '-';
                 }
+                var alertName = Protocol.Helper.getAlertNameByType(item.type);
                 
                 ret = '<li class="swipeout" data-id="'+item.listIndex+'" data-title="'+item.title+'" data-type="'+item.type+'" data-imei="'+item.imei+'" data-name="'+item.name+'" data-lat="'+item.lat+'" data-lng="'+item.lng+'" data-time="'+item.time+'" data-speed="'+item.speed+'" data-direct="'+item.direct+'" data-mileage="'+item.mileage+'">' +                        
                             '<div class="swipeout-content item-content">' +
                                 '<div class="item-inner">' +
-                                    '<div class="item-title-row">' +
-                                        '<div class="item-title">'+item.title+'</div>' +
-                                        '<div class="item-after">'+item.time+'</div>' +
+                                    '<div class="item-title-row">';
+                                        if (alertName) {
+                ret +=                  '<div class="item-title">' + alertName + ' - ' + item.title + '</div>';
+                                        }else{
+                ret +=                  '<div class="item-title">' + item.title + '</div>';      
+                                        }
+                ret +=                  '<div class="item-after">' + item.time + '</div>' +                                        
                                     '</div>' +
                                     '<div class="item-subtitle">'+item.name+'</div>' +                                        
                                 '</div>' +
@@ -1300,78 +1327,234 @@ App.onPageInit('alarms.assets', function (page) {
 
 });
 
-App.onPageInit('alarms.select', function (page) {
+App.onPageInit('alarms.select', function(page) {
 
-    var alarm = $$(page.container).find('input[name = "checkbox-alarm"]');    
+    var alarm = $$(page.container).find('input[name = "checkbox-alarm"]');
 
-    var alarmFields = ['accOff','accOn','customAlarm','custom2LowAlarm','geolock','geofenceIn','geofenceOut','illegalIgnition','lowBattery','mainBatteryFail','sosAlarm','speeding','tilt', 'harshAcc', 'harshBrk'];  
-   
+    //var alarmFields = ['accOff', 'accOn', 'customAlarm', 'custom2LowAlarm', 'geolock', 'geofenceIn', 'geofenceOut', 'illegalIgnition', 'lowBattery', 'mainBatteryFail', 'sosAlarm', 'speeding', 'tilt', 'harshAcc', 'harshBrk'];
+
     var allCheckboxesLabel = $$(page.container).find('label.item-content');
-    var allCheckboxes = allCheckboxesLabel.find('input');
+    var allCheckboxes = allCheckboxesLabel.find('input.input-checkbox-alarm');
     var assets = $$(page.container).find('input[name="Assets"]').val();
-    
 
-    alarm.on('change', function(e) { 
-        if( $$(this).prop('checked') ){
+    var alarmPreferenceList = $$(page.container).find('.alarm_list');
+    var ignoreBetweenEl = $$(page.container).find('[name="ignoreBetween"]');
+    var pickerWrapperEl = $$(page.container).find('.picker-el-wrapper');
+    var ignoreOnEl = $$(page.container).find('.ignore-on-wrapper');
+    var BeginTimeInput = $$(page.container).find('[name="picker-from"]');
+    var EndTimeInput = $$(page.container).find('[name="picker-to"]');
+    var BeginTimeValArray = BeginTimeInput.val() ? BeginTimeInput.val().split(':') : [];
+    var EndTimeInputArray = EndTimeInput.val() ? EndTimeInput.val().split(':') : [];
+
+
+    alarm.on('change', function(e) {
+        if ($$(this).prop('checked')) {
             allCheckboxes.prop('checked', true);
-        }else{
+        } else {
             allCheckboxes.prop('checked', false);
         }
     });
 
-    allCheckboxes.on('change', function(e) { 
-        if( $$(this).prop('checked') ){
+    allCheckboxes.on('change', function(e) {
+        if ($$(this).prop('checked')) {
             alarm.prop('checked', true);
         }
-    });    
-    
-    $$('.saveAlarm').on('click', function(e){        
-        var alarmOptions = {
-            IMEI: assets,
-            options: 0,            
+    });
+
+    if (!BeginTimeValArray || !BeginTimeValArray.length) {
+        BeginTimeValArray = ['07', '00'];
+    }
+    if (!EndTimeInputArray || !EndTimeInputArray.length) {
+        EndTimeInputArray = ['18', '00'];
+    }
+    var pickerFrom = App.picker({
+        input: BeginTimeInput,
+        cssClass: 'custom-picker custom-time',
+        toolbarTemplate: '<div class="toolbar">' +
+            '<div class="toolbar-inner">' +
+            '<div class="left"><div class="text">' + LANGUAGE.GEOFENCE_MSG_29 + '</div></div>' +
+            '<div class="right">' +
+            '<a href="#" class="link close-picker color-black">{{closeText}}</a>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+
+        value: BeginTimeValArray,
+
+        onChange: function(picker, values, displayValues) {
+            /*var daysInMonth = new Date(picker.value[2], picker.value[0]*1 + 1, 0).getDate();
+            if (values[1] > daysInMonth) {
+                picker.cols[1].setValue(daysInMonth);
+            }*/
+        },
+
+        formatValue: function(p, values, displayValues) {
+            return values[0] + ':' + values[1];
+        },
+
+        cols: [
+            // Hours
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 23; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            },
+            // Divider
+            /*{
+                divider: true,
+                content: ':'
+            },*/
+            // Minutes
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 59; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            }
+        ]
+    });
+
+    var pickerTo = App.picker({
+        input: EndTimeInput,
+        cssClass: 'custom-picker custom-time',
+        toolbarTemplate: '<div class="toolbar">' +
+            '<div class="toolbar-inner">' +
+            '<div class="left"><div class="text">' + LANGUAGE.GEOFENCE_MSG_30 + '</div></div>' +
+            '<div class="right">' +
+            '<a href="#" class="link close-picker color-black">{{closeText}}</a>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+
+        value: EndTimeInputArray,
+
+        onChange: function(picker, values, displayValues) {
+            /*var daysInMonth = new Date(picker.value[2], picker.value[0]*1 + 1, 0).getDate();
+            if (values[1] > daysInMonth) {
+                picker.cols[1].setValue(daysInMonth);
+            }*/
+        },
+
+        formatValue: function(p, values, displayValues) {
+            return values[0] + ':' + values[1];
+        },
+
+        cols: [
+            // Hours
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 23; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            },
+            // Divider
+            /*{
+                divider: true,
+                content: ':'
+            },*/
+            // Minutes
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 59; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            }
+        ]
+    });
+
+    $$(alarmPreferenceList).on('click', 'li.picker-el-wrapper', function(event) {
+        event.stopPropagation();
+        var input = $$(this).find('input');
+
+        if (input) {
+            var name = input.attr('name');
+            switch (name) {
+                case 'picker-from':
+                    pickerFrom.open();
+                    break;
+                case 'picker-to':
+                    pickerTo.open();
+                    break;
+            }
+        }
+    });
+
+    ignoreBetweenEl.on('change', function() {
+        pickerWrapperEl.toggleClass('disabled');
+        ignoreOnEl.toggleClass('disabled');
+    });
+
+    $$('.saveAlarm').on('click', function(e) {
+        var userInfo = getUserinfo();
+        var ignoreDaysArr = $(page.container).find('[name="ignore-days"]').val();
+
+        var data = {
+            MajorToken: userInfo.MajorToken,
+            MinorToken: userInfo.MinorToken,
+            IMEIS: assets,
+            DateFrom: moment(BeginTimeInput.val(), 'HH:mm').utc().format('HH:mm'),
+            DateTo: moment(EndTimeInput.val(), 'HH:mm').utc().format('HH:mm'),
+            AlertTypes: 0,
+            Weeks: '',
+            IsIgnore: 0,
         };
-        if (alarm.is(":checked")) {
-            alarmOptions.alarm = true;
+
+        if (ignoreBetweenEl.is(":checked")) {
+            data.IsIgnore = 1;
+        }
+        if (ignoreDaysArr && ignoreDaysArr.length) {
+            data.Weeks = ignoreDaysArr.toString();
+        }
+        if (allCheckboxes && allCheckboxes.length) {
+            for (var i = allCheckboxes.length - 1; i >= 0; i--) {
+                /*if (allCheckboxes[i].checked) {*/
+                if (!allCheckboxes[i].checked) {
+                    data.AlertTypes += parseInt(allCheckboxes[i].value, 10);
+                }
+            }
         }
 
-        $.each(alarmFields, function( index, value ) {
-            var field = $$(page.container).find('input[name = "checkbox-'+value+'"]');
-            if (!field.is(":checked")) {
-                alarmOptions[value] = false;
-                alarmOptions.options = alarmOptions.options + parseInt(field.val(), 10);
-            }else{
-                alarmOptions[value] = true;
+        /*console.log(data);*/
+
+        App.showPreloader();
+        $.ajax({
+            type: "POST",
+            url: API_URL.URL_SET_ALERT_CONFIG,
+            data: data,
+            async: true,
+            cache: false,
+            crossDomain: true,
+            success: function(result) {
+                App.hidePreloader();
+                console.log(result);
+                if (result.MajorCode == '000') {
+                    mainView.router.back({
+                        pageName: 'index',
+                        force: true
+                    });
+
+                } else {
+                    App.alert('Something wrong');
+                }
+            },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                App.hidePreloader();
+                App.alert(LANGUAGE.COM_MSG02);
             }
         });
 
-        console.log(alarmOptions.options);  
-        
-        var userInfo = getUserinfo(); 
-        var url = API_URL.URL_SET_ALARM2.format(userInfo.MinorToken,
-                alarmOptions.IMEI,
-                alarmOptions.options                                
-            );                    
-        
-        App.showPreloader();
-        JSON1.request(url, function(result){ 
-                console.log(result);                  
-                if (result.MajorCode == '000') {                    
-                    //setAlarmList(alarmOptions);
-                    updateAlarmOptVal(alarmOptions);
-                    mainView.router.back({
-                        pageName: 'index', 
-                        force: true
-                    });
-                }else{
-                    App.alert('Something wrong');
-                }
-                App.hidePreloader();
-            },
-            function(){ App.hidePreloader(); App.alert(LANGUAGE.COM_MSG16); }
-        ); 
-        
-    });
+    });    
 
+});
+
+App.onPageBeforeRemove('alarms.select', function(page) {
+    // fix to close modal calendar if it was opened and default back button pressed
+    App.closeModal('.custom-picker');
 });
 
 
@@ -1713,73 +1896,234 @@ App.onPageInit('resetPwd', function (page) {
     });
 });
 
-App.onPageInit('asset.alarm', function (page) {
-    var alarm = $$(page.container).find('input[name = "checkbox-alarm"]');      
+App.onPageInit('asset.alarm', function(page) {
+    var alarm = $$(page.container).find('input[name = "checkbox-alarm"]');
 
-    var alarmFields = ['accOff','accOn','customAlarm','custom2LowAlarm','geolock','geofenceIn','geofenceOut','illegalIgnition','lowBattery','mainBatteryFail','sosAlarm','speeding','tilt', 'harshAcc', 'harshBrk'];
+    //var alarmFields = ['accOff', 'accOn', 'customAlarm', 'custom2LowAlarm', 'geolock', 'geofenceIn', 'geofenceOut', 'illegalIgnition', 'lowBattery', 'mainBatteryFail', 'sosAlarm', 'speeding', 'tilt', 'harshAcc', 'harshBrk'];
 
     var allCheckboxesLabel = $$(page.container).find('label.item-content');
-    var allCheckboxes = allCheckboxesLabel.find('input');
-    
+    var allCheckboxes = allCheckboxesLabel.find('input.input-checkbox-alarm');
 
-    alarm.on('change', function(e) { 
-        if( $$(this).prop('checked') ){
+    var alarmPreferenceList = $$(page.container).find('.alarm_list');
+    var ignoreBetweenEl = $$(page.container).find('[name="ignoreBetween"]');
+    var pickerWrapperEl = $$(page.container).find('.picker-el-wrapper');
+    var ignoreOnEl = $$(page.container).find('.ignore-on-wrapper');
+    var BeginTimeInput = $$(page.container).find('[name="picker-from"]');
+    var EndTimeInput = $$(page.container).find('[name="picker-to"]');
+    var BeginTimeValArray = BeginTimeInput.val() ? BeginTimeInput.val().split(':') : [];
+    var EndTimeInputArray = EndTimeInput.val() ? EndTimeInput.val().split(':') : [];
+
+
+    alarm.on('change', function(e) {
+        if ($$(this).prop('checked')) {
             allCheckboxes.prop('checked', true);
-        }else{
+        } else {
             allCheckboxes.prop('checked', false);
         }
     });
 
-    allCheckboxes.on('change', function(e) { 
-        if( $$(this).prop('checked') ){
-            alarm.prop('checked', true);
+    /*  allCheckboxes.on('change', function(e) {
+          if ($$(this).prop('checked')) {
+              alarm.prop('checked', true);
+          }
+      });*/
+
+
+
+    if (!BeginTimeValArray || !BeginTimeValArray.length) {
+        BeginTimeValArray = ['07', '00'];
+    }
+    if (!EndTimeInputArray || !EndTimeInputArray.length) {
+        EndTimeInputArray = ['18', '00'];
+    }
+    var pickerFrom = App.picker({
+        input: BeginTimeInput,
+        cssClass: 'custom-picker custom-time',
+        toolbarTemplate: '<div class="toolbar">' +
+            '<div class="toolbar-inner">' +
+            '<div class="left"><div class="text">' + LANGUAGE.GEOFENCE_MSG_29 + '</div></div>' +
+            '<div class="right">' +
+            '<a href="#" class="link close-picker color-black">{{closeText}}</a>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+
+        value: BeginTimeValArray,
+
+        onChange: function(picker, values, displayValues) {
+            /*var daysInMonth = new Date(picker.value[2], picker.value[0]*1 + 1, 0).getDate();
+            if (values[1] > daysInMonth) {
+                picker.cols[1].setValue(daysInMonth);
+            }*/
+        },
+
+        formatValue: function(p, values, displayValues) {
+            return values[0] + ':' + values[1];
+        },
+
+        cols: [
+            // Hours
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 23; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            },
+            // Divider
+            /*{
+                divider: true,
+                content: ':'
+            },*/
+            // Minutes
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 59; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            }
+        ]
+    });
+
+    var pickerTo = App.picker({
+        input: EndTimeInput,
+        cssClass: 'custom-picker custom-time',
+        toolbarTemplate: '<div class="toolbar">' +
+            '<div class="toolbar-inner">' +
+            '<div class="left"><div class="text">' + LANGUAGE.GEOFENCE_MSG_30 + '</div></div>' +
+            '<div class="right">' +
+            '<a href="#" class="link close-picker color-black">{{closeText}}</a>' +
+            '</div>' +
+            '</div>' +
+            '</div>',
+
+        value: EndTimeInputArray,
+
+        onChange: function(picker, values, displayValues) {
+            /*var daysInMonth = new Date(picker.value[2], picker.value[0]*1 + 1, 0).getDate();
+            if (values[1] > daysInMonth) {
+                picker.cols[1].setValue(daysInMonth);
+            }*/
+        },
+
+        formatValue: function(p, values, displayValues) {
+            return values[0] + ':' + values[1];
+        },
+
+        cols: [
+            // Hours
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 23; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            },
+            // Divider
+            /*{
+                divider: true,
+                content: ':'
+            },*/
+            // Minutes
+            {
+                values: (function() {
+                    var arr = [];
+                    for (var i = 0; i <= 59; i++) { arr.push(i < 10 ? '0' + i : i); }
+                    return arr;
+                })(),
+            }
+        ]
+    });
+
+    $$(alarmPreferenceList).on('click', 'li.picker-el-wrapper', function(event) {
+        event.stopPropagation();
+        var input = $$(this).find('input');
+
+        if (input) {
+            var name = input.attr('name');
+            switch (name) {
+                case 'picker-from':
+                    pickerFrom.open();
+                    break;
+                case 'picker-to':
+                    pickerTo.open();
+                    break;
+            }
         }
-    });    
-    
-    $$('.saveAlarm').on('click', function(e){        
-        var alarmOptions = {
-            IMEI: TargetAsset.ASSET_IMEI,
-            options: 0,            
+    });
+
+    ignoreBetweenEl.on('change', function() {
+        pickerWrapperEl.toggleClass('disabled');
+        ignoreOnEl.toggleClass('disabled');
+    });
+
+    $$('.saveAlarm').on('click', function(e) {
+        var userInfo = getUserinfo();
+        var ignoreDaysArr = $(page.container).find('[name="ignore-days"]').val();
+
+        var data = {
+            MajorToken: userInfo.MajorToken,
+            MinorToken: userInfo.MinorToken,
+            IMEIS: TargetAsset.ASSET_IMEI,
+            DateFrom: moment(BeginTimeInput.val(), 'HH:mm').utc().format('HH:mm'),
+            DateTo: moment(EndTimeInput.val(), 'HH:mm').utc().format('HH:mm'),
+            AlertTypes: 0,
+            Weeks: '',
+            IsIgnore: 0,
         };
 
-        if (alarm.is(":checked")) {
-            alarmOptions.alarm = true;
+        if (ignoreBetweenEl.is(":checked")) {
+            data.IsIgnore = 1;
+        }
+        if (ignoreDaysArr && ignoreDaysArr.length) {
+            data.Weeks = ignoreDaysArr.toString();
+        }
+        if (allCheckboxes && allCheckboxes.length) {
+            for (var i = allCheckboxes.length - 1; i >= 0; i--) {
+                /*if (allCheckboxes[i].checked) {*/
+                if (!allCheckboxes[i].checked) {
+                    data.AlertTypes += parseInt(allCheckboxes[i].value, 10);
+                }
+            }
         }
 
-        $.each(alarmFields, function( index, value ) {
-            var field = $$(page.container).find('input[name = "checkbox-'+value+'"]');
-            if (!field.is(":checked")) {
-                //alarmOptions[value] = false;
-                alarmOptions.options = alarmOptions.options + parseInt(field.val(), 10);
-            }else{
-                //alarmOptions[value] = true;
-            }
-        });
-                            
-        console.log(alarmOptions);
-        var userInfo = getUserinfo(); 
-        var url = API_URL.URL_SET_ALARM.format(userInfo.MinorToken,
-                alarmOptions.IMEI,
-                alarmOptions.options                                
-            );                    
+        console.log(data);
 
         App.showPreloader();
-        JSON1.request(url, function(result){ 
-                console.log(result);                  
-                if (result.MajorCode == '000') {                    
-                    //setAlarmList(alarmOptions);
-                    updateAlarmOptVal(alarmOptions);
+        $.ajax({
+            type: "POST",
+            url: API_URL.URL_SET_ALERT_CONFIG,
+            data: data,
+            async: true,
+            cache: false,
+            crossDomain: true,
+            success: function(result) {
+                App.hidePreloader();
+                console.log(result);
+                if (result.MajorCode == '000') {
                     mainView.router.back();
-                }else{
+
+                } else {
                     App.alert('Something wrong');
                 }
-                App.hidePreloader();
             },
-            function(){ App.hidePreloader(); App.alert(LANGUAGE.COM_MSG16); }
-        ); 
-        
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                App.hidePreloader();
+                App.alert(LANGUAGE.COM_MSG02);
+            }
+        });
+
     });
-        
+
+   
+
+
+});
+
+App.onPageBeforeRemove('asset.alarm', function(page) {
+    // fix to close modal calendar if it was opened and default back button pressed
+    App.closeModal('.custom-picker');
 });
 
 
@@ -2520,11 +2864,13 @@ function init_AssetList() {
         newAssetlist.push(assetList[value]);       
     });
 
-    newAssetlist.sort(function(a,b){
+    /*newAssetlist.sort(function(a,b){
         if(a.Name < b.Name) return -1;
         if(a.Name > b.Name) return 1;
         return 0;
-    });
+    });*/
+
+    newAssetlist = sortListByState(newAssetlist,'state');
     
     mainView.router.back({
         pageName: 'index', 
@@ -3407,12 +3753,47 @@ function showCustomMessage(params){
     });    
 }
 
+function getAlertConfig() {
+    var userInfo = getUserinfo();
+    var data = {
+        MajorToken: userInfo.MajorToken,
+        MinorToken: userInfo.MinorToken,
+        IMEI: TargetAsset.ASSET_IMEI
+    };
 
-function loadAlarmPage(){
-   
-    var assetList = getAssetList();    
+    App.showPreloader();
+    $.ajax({
+        type: "POST",
+        url: API_URL.URL_GET_ALERT_CONFIG,
+        data: data,
+        async: true,
+        cache: false,
+        crossDomain: true,
+        success: function(result) {
+            App.hidePreloader();
+            console.log(result);
+            if (result.MajorCode == '000') {
+                //if (!result.Data) {
+                loadAlarmPage(result.Data);
+                //}
+
+            } else {
+                //App.alert(LANGUAGE.PROMPT_MSG013);
+            }
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            App.hidePreloader();
+            App.alert(LANGUAGE.COM_MSG02);
+        }
+    });
+}
+
+
+function loadAlarmPage(params) {
+
+    var assetList = getAssetList();
     var assetAlarmVal = assetList[TargetAsset.ASSET_IMEI].AlarmOptions;
-    
+
     var alarms = {
         accOff: {
             state: true,
@@ -3479,26 +3860,98 @@ function loadAlarmPage(){
             //val: 0,
         },
     };
-    
 
-    if (assetAlarmVal) {
-        $.each( alarms, function ( key, value ) {            
-            if (assetAlarmVal & value.val) {                
-                alarms[key].state = false;
-            }            
-        });
-        if (assetAlarmVal == 36931518) {
-            alarms.alarm.state = false;
+    var daysOfWeekArray = [{
+            val: 0,
+            name: LANGUAGE.GEOFENCE_MSG_20,
+            selected: false,
+        },
+        {
+            val: 1,
+            name: LANGUAGE.GEOFENCE_MSG_21,
+            selected: false,
+        },
+        {
+            val: 2,
+            name: LANGUAGE.GEOFENCE_MSG_22,
+            selected: false,
+        },
+        {
+            val: 3,
+            name: LANGUAGE.GEOFENCE_MSG_23,
+            selected: false,
+        },
+        {
+            val: 4,
+            name: LANGUAGE.GEOFENCE_MSG_24,
+            selected: false,
+        },
+        {
+            val: 5,
+            name: LANGUAGE.GEOFENCE_MSG_25,
+            selected: false,
+        },
+        {
+            val: 6,
+            name: LANGUAGE.GEOFENCE_MSG_26,
+            selected: false,
+        },
+    ];
+
+    var BeginTime = '07:00';
+    var EndTime = '18:00';
+    var IsIgnore = 0;
+
+
+
+    if (!params) {
+        if (assetAlarmVal) {
+            $.each(alarms, function(key, value) {
+                if (assetAlarmVal & value.val) {
+                    alarms[key].state = false;
+                }
+            });
         }
-        
+    } else {
+
+        $.each(alarms, function(key, value) {
+            if (params.AlertTypes & value.val) {
+                alarms[key].state = false;
+            }
+        });
+
+        if (params.Weeks) {
+            var selectedDays = params.Weeks.split(',');
+            if (selectedDays && selectedDays.length) {
+                $.each(selectedDays, function(index, value) {
+                    var dayIndex = daysOfWeekArray.findIndex(x => x.val === parseInt(value, 10));
+                    if (dayIndex != -1) {
+                        daysOfWeekArray[dayIndex].selected = true;
+                    }
+
+                });
+            }
+        }
+        if (params.BeginTime) {
+            BeginTime = moment(params.BeginTime, 'HH:mm').add(UTCOFFSET, 'minutes').format('HH:mm');
+        }
+        if (params.EndTime) {
+            EndTime = moment(params.EndTime, 'HH:mm').add(UTCOFFSET, 'minutes').format('HH:mm');
+        }
+        if (params.IsIgnore) {
+            IsIgnore = params.IsIgnore;
+        }
+
     }
 
-    
+    /*console.log(BeginTime);
+    console.log(EndTime);*/
+
 
     mainView.router.load({
-        url:'resources/templates/asset.alarm.html',
-        context:{
-            Name: POSINFOASSETLIST[TargetAsset.ASSET_IMEI].Name,            
+        url: 'resources/templates/asset.alarm.html',
+        context: {
+            Name: POSINFOASSETLIST[TargetAsset.ASSET_IMEI].Name,
             alarm: alarms.alarm.state,
             accOff: alarms.accOff.state,
             accOn: alarms.accOn.state,
@@ -3518,6 +3971,12 @@ function loadAlarmPage(){
             tilt: alarms.tilt.state,
             harshAcc: alarms.harshAcc.state,
             harshBrk: alarms.harshBrk.state,
+
+            DaysOfWeek: daysOfWeekArray,
+            BeginTime: BeginTime,
+            EndTime: EndTime,
+            IgnoreBetween: IsIgnore,
+
         }
     });
 }
@@ -4469,6 +4928,56 @@ function getNewData(){
     ); 
    
 
+}
+
+function sortAssetList(elem){
+    if (elem) {
+        var $elem = $$(elem);
+        var sortType = $elem.data("sort-by");
+        //var sortOrder = $elem.data("sort-order");
+        if (virtualAssetList && virtualAssetList.items && virtualAssetList.items.length) {
+            var assets = virtualAssetList.items;
+            
+            assets = sortListByState(assets, sortType);                 
+
+            virtualAssetList.replaceAllItems(assets); 
+        }
+    }
+    App.closeModal();
+}
+
+function sortListByState(array, sortType){
+    if (array && array.length) {       
+        array.sort(function(a,b){
+            if(a.Name < b.Name) return -1;
+            if(a.Name > b.Name) return 1;
+            return 0;
+        });
+
+        switch(sortType){ 
+            case 'state':
+                var oneDay = 1000*60*60*24;
+                var now = moment();                
+                var arrayOnline = [];
+                var arrayOffline = [];
+                for (var i = 0; i < array.length; i++) {
+                    if (POSINFOASSETLIST[array[i].IMEI] && POSINFOASSETLIST[array[i].IMEI].posInfo && POSINFOASSETLIST[array[i].IMEI].posInfo.positionTime) {
+                        var dateDifference = Protocol.Helper.getDifferenceBTtwoDates(POSINFOASSETLIST[array[i].IMEI].posInfo.positionTime, now);
+                        if (dateDifference <= oneDay){
+                            arrayOnline.push(array[i]);
+                        }else{
+                            arrayOffline.push(array[i]);
+                        }                        
+                    }else{
+                        arrayOffline.push(array[i]);
+                    }                    
+                }                
+                array = arrayOnline.concat(arrayOffline);
+
+                break; 
+        }  
+    }    
+    return array;
 }
 
 function getNewNotifications(params){         
